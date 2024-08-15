@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .board {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 4px;
+            width: 300px;
+            height: 300px;
+            background-color: #fff;
+            border: 2px solid black;
+            padding: 4px;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        .turn {
+            margin: 0;
+            text-align: center;
+        }
+        #message {
+            position: fixed;
+            font-size: 100px;
+            padding: 20px;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        form {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 50px 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: calc(100% - 40px);
+            max-width: 300px; 
+            z-index: 1; 
+        }
+        form h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px; 
+        }
+        form label {
+            font-size: 16px; 
+            color: #555;
+        }
+        form input[type="text"] {
+            width: calc(100% - 22px); 
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+            margin-bottom: 10px; 
+        }
+        form input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        form button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px; 
+        }
+        form button:hover {
+            background-color: #0056b3;
+        }
+        #button1 {
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        #button1:hover {
+            background-color: #0056b3;
+        }
+        #div1 {
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1 class="turn"></h1>
+        <div class="board"></div>
+    </div>
+    <script>
+            const container = document.querySelector('#container')
+            const board = document.querySelector('.board')
+            const turn = document.querySelector('.turn')
+            const createGameForm = () => {
+                const render = () => {
+                const form = document.createElement("form");
+                form.id = 'gameForm';
+                form.innerHTML = `
+                    <label for="player1">X </label>
+                    <input type="text" id="player1" placeholder="Player 1">
+                    <br><br>
+                    <label for="player2">O </label>
+                    <input type="text" id="player2" placeholder="Player 2">
+                    <br><br>
+                    <button type="button" id="startGame">Start Game</button>
+                `;
+                board.appendChild(form);
+                }
+                const bindEvents = (startGameCallBack) => {
+                document.querySelector('#startGame').addEventListener("click", startGameCallBack)
+                }
+                return {render, bindEvents}
+            }
+            const createGameBoard = () => {
+                const cells = [];
+                const render = () => {
+                    board.textContent = '';
+                    for (let i = 0; i < 9; i++) {
+                        const btn = document.createElement('button');
+                        btn.classList.add("cell");
+                        board.appendChild(btn);
+                        cells.push(btn);
+                    }
+                };
+                const getCells = () => cells;
+                return { render, getCells };
+            }
+            const createPlayerInfo = (player1Name, player2Name) => {
+                const render = () => {
+                    const div = document.createElement('div');
+                    div.id = 'div1';
+                    div.innerHTML = `
+                    <div>
+                        <p>X</p>
+                        <p>${player1Name}</p>
+                    </div>
+                    <div>
+                        <p>O</p>
+                        <p>${player2Name}</p>
+                    </div>
+                    `;
+                    container.appendChild(div);
+                };
+                const updateTurn = (playerName) => {
+                    turn.textContent = `${playerName}'s turn`;
+                };
+                return { render, updateTurn };
+            };
+            const createGameLogic = (player1Name, player2Name, gameBoard, playerInfo) => {
+                let count = 0;
+                let playerTurn = player1Name;
+                const switchPlayer = () => {
+                    count = count === 0 ? 1 : 0;
+                    playerTurn = count == 0 ? `${player1Name}` : `${player2Name}`;
+                    playerInfo.updateTurn(playerTurn);
+                }
+                const checkWinner = (board) => {
+                    const winningCombinations = [
+                        [0, 1, 2],
+                        [3, 4, 5],
+                        [6, 7, 8],
+                        [0, 3, 6],
+                        [1, 4, 7],
+                        [2, 5, 8],
+                        [0, 4, 8],
+                        [2, 4, 6]
+                    ];
+                    for (const combination of winningCombinations) {
+                        const [a, b, c] = combination;
+                        if (board[a] && board[a] === board[b] && board[b] === board[c]) {
+                            return board[a];
+                        }
+                    }
+                    return null;
+                }
+                const isFull = (board) => board.every(cell => cell === 'X' || cell === 'O');
+                const handleCellClick = (cell) => {
+                    if (cell.textContent == 'X' || cell.textContent == 'O') {
+                        return
+                    }
+                    cell.textContent = count === 0 ? 'X' : 'O';
+                    switchPlayer();
+                    const board = gameBoard.getCells().map(cell => cell.textContent);
+                    const winner = checkWinner(board);
+                    let playerWinner = winner == 'X' ? `${player1Name}` : `${player2Name}`;
+                    if (winner) {
+                        endGame(`${playerWinner} is the winner!`)
+                    } else if (isFull(board)) {
+                        endGame("It's a tie")
+                    }
+                }
+                const endGame = (message) => {
+                    turn.textContent = '';
+                    const div = document.createElement('div');
+                    div.id ='message';
+                    div.textContent = message;
+                    container.appendChild(div);
+                    const button = document.createElement('button');
+                    button.textContent = 'Play Again';
+                    button.id = 'button1'
+                    button.addEventListener('click', resetGame);
+                    div.appendChild(button);
+                }
+                const bindEvents = () => {
+                    gameBoard.getCells().forEach(cell => cell.addEventListener('click', () => handleCellClick(cell)));
+                }
+                return {bindEvents}
+            }
+            const createGame = () => {
+                const gameForm = createGameForm();
+                let gameBoard, playerInfo, gameLogic;
+                const startGame = () => {
+                    const player1Name = document.querySelector("#player1").value || 'player 1';
+                    const player2Name = document.querySelector("#player2").value || 'player 2';
+                    gameBoard = createGameBoard()
+                    gameBoard.render()
+                    playerInfo = createPlayerInfo(player1Name, player2Name)
+                    playerInfo.render()
+                    playerInfo.updateTurn(player1Name)
+                    gameLogic = createGameLogic(player1Name, player2Name, gameBoard, playerInfo)
+                    gameLogic.bindEvents()
+                }
+                const init = () => {
+                    gameForm.render();
+                    gameForm.bindEvents(startGame);
+                }
+                
+                return {init}
+            }
+            const game = createGame();
+            game.init();
+            const resetGame = () => {
+                board.textContent = '';
+                const div = document.querySelector('#message')
+                if (div) {
+                    div.parentNode.removeChild(div);
+                }
+                const div1 = document.querySelector('#div1')
+                if (div1) {
+                    div1.parentNode.removeChild(div1);
+                }
+                game.init();
+            }
+    </script>
+</body>
+</html>
